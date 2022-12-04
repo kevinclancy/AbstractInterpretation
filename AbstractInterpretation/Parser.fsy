@@ -1,0 +1,48 @@
+﻿%{
+open System
+open Syntax
+
+let mutable nextLabel = 0
+
+let getNextLabel() : int =
+    let ret = nextLabel
+    nextLabel <- nextLabel + 1
+    ret
+%}
+
+%start stat
+%type <Statement<unit>> stat
+
+%token <int> INT
+%token <string> ID
+
+// (most recent comment, identifier string)
+%token LPAREN RPAREN LBRACK RBRACK IF ELSE WHILE BREAK EQUALS SEMICOLON
+%token PLUS MINUS TIMES SKIP LT NAND EOF
+
+%left NAND
+%left LT
+%left MINUS
+%nonassoc UMINUS
+
+%% 
+
+bexpr : aexpr LT aexpr { Lt($1, $3) }
+      | bexpr NAND bexpr { Nand($1, $3) }
+      | LPAREN bexpr RPAREN { $2 }
+
+aexpr : aexpr MINUS aexpr { Minus($1, $3) }
+      | INT { Number($1) }
+      | ID { Id($1) }
+      | LPAREN aexpr RPAREN { $2 }
+
+stat : ID EQUALS aexpr { Assignment(getNextLabel(), $1, $3, ()) }
+     | SKIP { Skip(getNextLabel(), ()) }
+     | IF LPAREN bexpr RPAREN stat { IfThen(getNextLabel(), $3, $5, ()) } 
+     | IF LPAREN bexpr RPAREN stat ELSE stat { IfThenElse(getNextLabel(), $3, $5, $7, ()) }
+     | WHILE LPAREN bexpr RPAREN stat { While(getNextLabel(), $3, $5, ()) }
+     | BREAK SEMICOLON { Break(getNextLabel(), ()) }
+     | LBRACK statList RBRACK { StatList($2, ()) }
+
+statList : stat SEMICOLON statList { $1 :: $3 }
+         | stat SEMICOLON { [$1] }
