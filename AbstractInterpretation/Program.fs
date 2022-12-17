@@ -2,23 +2,12 @@
 open FSharp.Text.Lexing
 open Parser
 open Lexer
+open Syntax
 
-// open a text file
-
-// parse the text file
-
-
-// copy the above stuff from SchemaTypes
-
-[<EntryPoint>]
-let main (argv : string[]) =
-    if argv.Length = 0 then
-        printfn $"provide the name of a text file as the command line argument"
-        exit 1
-    
+let printProg (filename : string) =
     let reader = 
         try 
-            new StreamReader(argv[0])
+            new StreamReader(filename)
         with
         | :? FileNotFoundException ->
             printfn $"file not found"
@@ -26,7 +15,17 @@ let main (argv : string[]) =
 
     let lexbuffer : LexBuffer<char> = LexBuffer<char>.FromString(reader.ReadToEnd())
 
-    let stat = Parser.stat Lexer.token lexbuffer 
+    let stat = Parser.prog Lexer.token lexbuffer 
+
+    statDiagram (decorateControlFlow stat)
+
+[<EntryPoint>]
+let main (argv : string[]) =
+    if argv.Length = 0 then
+        printfn $"provide the name of a text file as the command line argument"
+        exit 1
+    
+    printf "%s" (printProg argv[0])
 
     1
 
