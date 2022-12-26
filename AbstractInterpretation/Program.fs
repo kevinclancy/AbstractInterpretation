@@ -17,8 +17,11 @@ let printProg (filename : string) =
 
     let stat = Parser.prog Lexer.token lexbuffer 
 
-    statDiagram (decorateControlFlow stat)
-
+    let stat' = decorateControlFlow stat
+    let diagram = statDiagram stat'
+    let trace = sprintTrace stat'
+    $"{diagram}\n\n{trace}"
+    
 [<EntryPoint>]
 let main (argv : string[]) =
     if argv.Length = 0 then
