@@ -3,6 +3,7 @@ open FSharp.Text.Lexing
 open Parser
 open Lexer
 open Syntax
+open OperationalSemantics
 
 let printProg (filename : string) =
     let reader = 
