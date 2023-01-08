@@ -5,11 +5,11 @@ open Syntax
 type Env = Map<string, int>
 
 type State = {
-    env : Env 
+    env : Env
     label : int
 }
 
-type ActionTemplate = 
+type ActionTemplate =
     | SkipTemplate of after:Label
     | BreakTemplate of breakTo:Label
     | AssignTemplate of var:string * aexpr:AExpr * after:Label
@@ -39,24 +39,24 @@ type Action =
                 $"!{cond}"
 
 let private getActionTemplate (s : Statement<ControlFlowAttributes>) (label : Label) : ActionTemplate =
-    assert (s.Attributes.labs.Contains label)
-    let rec getActionAux (s : Statement<ControlFlowAttributes>) : Set<ActionTemplate> =        
+    assert (s.Attr.labs.Contains label)
+    let rec getActionAux (s : Statement<ControlFlowAttributes>) : Set<ActionTemplate> =
         match s with
         | Assignment(variable, expr, attr) ->
             if attr.at = label then Set.singleton (AssignTemplate(variable, expr, attr.after)) else Set.empty
         | Skip(attr) ->
             if attr.at = label then Set.singleton (SkipTemplate(attr.after)) else Set.empty
         | IfThen(cond, thenClause, attr) ->
-            let condTemplates = 
+            let condTemplates =
                 if attr.at = label then
-                    Set.singleton (CondTemplate(cond, thenClause.Attributes.at, attr.after))
+                    Set.singleton (CondTemplate(cond, thenClause.Attr.at, attr.after))
                 else
                     Set.empty
             Set.union condTemplates (getActionAux thenClause)
         | IfThenElse(cond, thenClause, elseClause, attr) ->
             let condTemplates =
                 if attr.at = label then
-                    Set.singleton (CondTemplate(cond, thenClause.Attributes.at, elseClause.Attributes.at)) 
+                    Set.singleton (CondTemplate(cond, thenClause.Attr.at, elseClause.Attr.at))
                 else
                     Set.empty
             Set.unionMany [
@@ -67,9 +67,9 @@ let private getActionTemplate (s : Statement<ControlFlowAttributes>) (label : La
         | While(cond, body, attr) ->
             let condTemplates =
                 if attr.at = label then
-                    Set.singleton (CondTemplate(cond, body.Attributes.at, attr.after))
+                    Set.singleton (CondTemplate(cond, body.Attr.at, attr.after))
                 else
-                    Set.empty 
+                    Set.empty
             Set.union condTemplates (getActionAux body)
         | Break(attr) ->
             if attr.at = label then Set.singleton (BreakTemplate(attr.breakTo)) else Set.empty
@@ -82,7 +82,7 @@ let private getActionTemplate (s : Statement<ControlFlowAttributes>) (label : La
 let rec evalAExpr (env : Env) (aexpr : AExpr) : int =
     match aexpr with
     | Number(n) ->
-        n 
+        n
     | Minus(lhs, rhs) ->
         (evalAExpr env lhs) - (evalAExpr env rhs)
     | Id(x) ->
@@ -99,7 +99,7 @@ let rec evalBExpr (env : Env) (bexpr : BExpr) : bool =
         not ((evalBExpr env lBExpr) && (evalBExpr env rBExpr))
 
 let step (s : Statement<ControlFlowAttributes>) (state : State) : Action * State =
-    match getActionTemplate s state.label with 
+    match getActionTemplate s state.label with
     | SkipTemplate(after) ->
         SkipAction, { state with label = after }
     | BreakTemplate(breakTo) ->
@@ -115,17 +115,17 @@ let step (s : Statement<ControlFlowAttributes>) (state : State) : Action * State
             CondAction(cond, false), { state with label = afterFalse }
 
 /// Returns (initLabel, transitions), where initLabel is the starting label
-/// and each transition is a pair of an action and a label the action transitions to 
+/// and each transition is a pair of an action and a label the action transitions to
 let trace (s : Statement<ControlFlowAttributes>) : Label * List<Action * Label> =
-    let mutable state = { env = Map.empty ; label = s.Attributes.at }
+    let mutable state = { env = Map.empty ; label = s.Attr.at }
     let mutable result : List<Action * Label> = []
-    while state.label <> s.Attributes.after do
+    while state.label <> s.Attr.after do
         let action, state' = step s state
         result <- (action, state'.label) :: result
         state <- state'
-    s.Attributes.at, List.rev result
+    s.Attr.at, List.rev result
 
-let sprintTrace (s : Statement<ControlFlowAttributes>) : string = 
+let sprintTrace (s : Statement<ControlFlowAttributes>) : string =
     let initLabel, transitions = trace s
     let sprintTransition ((action, label) : Action * Label) : string =
         $"--[{action}]-> l{label}"

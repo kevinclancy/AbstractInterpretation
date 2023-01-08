@@ -4,7 +4,7 @@ open Syntax
 open OperationalSemantics
 open Domain
 
-let AssertionalDomain = {
+let assertionalDomain = {
     new Domain<Set<Env>> with
         member this.Bot =
             Set.empty
